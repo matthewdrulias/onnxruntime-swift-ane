@@ -21,16 +21,38 @@ BOOL ORTIsCoreMLExecutionProviderAvailable(void);
 NS_ASSUME_NONNULL_BEGIN
 
 /**
+ * MLComputeUnits options for CoreML execution provider.
+ * Maps to Apple's MLComputeUnits enum.
+ */
+typedef NS_ENUM(NSInteger, ORTCoreMLComputeUnits) {
+    ORTCoreMLComputeUnitsAll = 0,              // Use all available compute units (default)
+    ORTCoreMLComputeUnitsCPUOnly,              // Use CPU only
+    ORTCoreMLComputeUnitsCPUAndGPU,            // Use CPU and GPU (excludes ANE)
+    ORTCoreMLComputeUnitsCPUAndNeuralEngine,   // Use CPU and Neural Engine (excludes GPU)
+};
+
+/**
  * Options for configuring the CoreML execution provider.
  */
 @interface ORTCoreMLExecutionProviderOptions : NSObject
 
 /**
+ * Which compute units to use for CoreML execution.
+ * Defaults to ORTCoreMLComputeUnitsAll.
+ *
+ * Use ORTCoreMLComputeUnitsCPUAndNeuralEngine to enable background execution
+ * (GPU is not available in background mode on iOS).
+ */
+@property ORTCoreMLComputeUnits computeUnits;
+
+/**
  * Whether the CoreML execution provider should run on CPU only.
+ * @deprecated Use computeUnits = ORTCoreMLComputeUnitsCPUOnly instead.
  */
 @property BOOL useCPUOnly;
 /**
  * exclude ANE in CoreML.
+ * @deprecated Use computeUnits = ORTCoreMLComputeUnitsCPUAndGPU instead.
  */
 @property BOOL useCPUAndGPU;
 /**
