@@ -1,31 +1,42 @@
 # Swift Package Manager for ONNX Runtime (ANE Fork)
 
-A fork of the [official ONNX Runtime Swift Package](https://github.com/microsoft/onnxruntime-swift-package-manager) with added support for Apple's `MLComputeUnits` configuration, enabling CPU+Neural Engine execution (excluding GPU) for iOS background audio processing.
+A fork of the [official ONNX Runtime Swift Package](https://github.com/microsoft/onnxruntime-swift-package-manager) with a cleaner `computeUnits` API for CoreML execution provider configuration.
 
 ## Fork Changes
 
-This fork adds the `computeUnits` property to `ORTCoreMLExecutionProviderOptions`, allowing you to specify which compute units CoreML should use:
+This fork adds the `computeUnits` property to `ORTCoreMLExecutionProviderOptions` for a cleaner API:
 
 ```swift
 let options = ORTCoreMLExecutionProviderOptions()
-options.computeUnits = .cpuAndNeuralEngine  // Use CPU + ANE, exclude GPU
+options.computeUnits = .cpuOnly  // or .cpuAndGPU, .all
 try sessionOptions.appendCoreMLExecutionProvider(with: options)
 ```
 
 ### Available Options
 
-| Value | Description |
-|-------|-------------|
-| `.all` | Use all compute units (default) |
-| `.cpuOnly` | CPU only |
-| `.cpuAndGPU` | CPU + GPU (excludes Neural Engine) |
-| `.cpuAndNeuralEngine` | CPU + Neural Engine (excludes GPU) |
+| Value | Description | Supported |
+|-------|-------------|-----------|
+| `.all` | Use all compute units (default) | Yes |
+| `.cpuOnly` | CPU only | Yes |
+| `.cpuAndGPU` | CPU + GPU (excludes Neural Engine) | Yes |
+| `.cpuAndNeuralEngine` | CPU + Neural Engine (excludes GPU) | **No*** |
 
-### Why This Fork?
+*\* The pre-built ONNX Runtime binary doesn't support `.cpuAndNeuralEngine`. This option falls back to `.all`. See "Limitations" below.*
 
-iOS blocks GPU access for background apps. When using ONNX Runtime with CoreML in background audio processing (wake word detection, VAD), the default configuration causes `IOGPUMetalError: Insufficient Permission` errors.
+### Limitations
 
-Using `.cpuAndNeuralEngine` enables power-efficient Neural Engine inference while avoiding GPU permission issues in background mode.
+**`.cpuAndNeuralEngine` is not supported** with the pre-built ONNX Runtime binary.
+
+The CoreML execution provider in ONNX Runtime uses a flags-based C API (`OrtSessionOptionsAppendExecutionProvider_CoreML`) that only supports:
+- `COREML_FLAG_USE_CPU_ONLY`
+- `COREML_FLAG_USE_CPU_AND_GPU`
+
+There's no flag for CPU+ANE (excluding GPU). The provider options API that would support `MLComputeUnits.cpuAndNeuralEngine` requires CoreML to be registered for the generic provider path, which it isn't in the iOS builds.
+
+**Workarounds for iOS background mode GPU errors:**
+1. Use `.cpuOnly` - works but loses ANE power efficiency benefits
+2. Build ONNX Runtime from source with proper CoreML provider options support
+3. Accept GPU errors in background (they're warnings, inference still runs on CPU/ANE)
 
 ## Usage
 
